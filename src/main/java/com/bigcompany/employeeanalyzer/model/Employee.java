@@ -5,11 +5,11 @@ import java.util.List;
 
 public class Employee {
 	
-	private int Id;
-	private String firstName;
-	private String lastName;
-	private double salary;
-	private Integer managerId;
+    private final int id;
+    private final String firstName;
+    private final String lastName;
+    private final double salary;
+    private final Integer managerId;
     
     private Employee manager;
     private List<Employee> subordinates=new ArrayList<Employee>();
@@ -35,54 +35,47 @@ public class Employee {
 	}
 	
 	public int getId() {
-		return Id;
-	}
-	public void setId(int id) {
-		Id = id;
+		return id;
 	}
 	public String getFirstName() {
 		return firstName;
 	}
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
+
 	public String getLastName() {
 		return lastName;
 	}
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
+
 	public double getSalary() {
 		return salary;
 	}
-	public void setSalary(double salary) {
-		this.salary = salary;
-	}
+
 	public Integer getManagerId() {
 		return managerId;
 	}
-	public void setManagerId(Integer managerId) {
-		this.managerId = managerId;
-	}
+
 	public Employee(int id, String firstName, String lastName, double salary, Integer managerId) {
 		super();
-		Id = id;
+		this.id = id;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.salary = salary;
 		this.managerId = managerId;
-	}
-	public Employee() {
-		super();
 	}
 	
 	public String getFullName() {
 		return this.firstName + " " + this.lastName;
 	}
+    public boolean isManager() {
+        return !this.subordinates.isEmpty();
+    }
+    
+	public boolean isCEO() {
+		return this.managerId == null;
+	}
 	
 	@Override
 	public String toString() {
-		return "Employee [Id=" + Id + ", firstName=" + firstName + ", lastName=" + lastName + ", salary=" + salary
+		return "Employee [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", salary=" + salary
 				+ ", managerId=" + managerId + "]";
 	}
 	

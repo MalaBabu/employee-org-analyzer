@@ -8,12 +8,18 @@ import java.util.Map;
 import com.bigcompany.employeeanalyzer.model.Employee;
 
 public class CsvEmployeeReader {
-
+	
+	/**
+	 * Method used to fetch Employee details from the CSV file on specified path
+	 * @param filePath
+	 * @return Map<Integer, com.bigcompany.employeeanalyzer.model.Employee> 
+	 */
 	public static Map<Integer, Employee> readEmployees(String filePath) {
 		Map<Integer, Employee> employeeMap = new HashMap<Integer, Employee>();
 		try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 			br.readLine(); // Ignoring header section to map
 			String line;
+			//Read employees
 			while ((line = br.readLine()) != null) {
 				if (line.trim().isBlank()) {
 					continue;
@@ -23,6 +29,7 @@ public class CsvEmployeeReader {
 					employeeMap.put(employee.getId(), employee);
 				}
 			}
+			//Build organization hierarchy
 			for (Employee employee : employeeMap.values()) {
 				if (employee.getManagerId() != null) {
 					Employee manager = employeeMap.get(employee.getManagerId());
@@ -38,10 +45,13 @@ public class CsvEmployeeReader {
 		}
 		return employeeMap;
 	}
-
+	/**
+	 * parse the given row into the Employee
+	 * @param line
+	 * @return com.bigcompany.employeeanalyzer.model.Employee
+	 */
 	private static Employee parseEmployee(String line) {
 		String[] values = line.split(",");
-		if (values.length > 0) {
 			try {
 				int id = 0;
 				String firstName = null;
@@ -59,7 +69,6 @@ public class CsvEmployeeReader {
 			} catch (Exception e) {
                 System.out.println("Skipping invalid row: " + line + " | Reason: " + e.getMessage());
 			}
-		}
 		return null;
 
 	}

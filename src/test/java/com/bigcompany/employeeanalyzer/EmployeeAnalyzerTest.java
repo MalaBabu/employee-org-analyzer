@@ -2,6 +2,7 @@ package com.bigcompany.employeeanalyzer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class EmployeeAnalyzerTest {
     }
 
     private Map<String, List<String>> report() {
-        return employeeAnalyzer.analyse(employees);
+        return employeeAnalyzer.analyze(employees);
     }
 
     private boolean contains(List<String> list, String text) {
@@ -42,7 +43,7 @@ public class EmployeeAnalyzerTest {
         @Test
         void shouldLoadEmployeesSuccessfully() {
             assertNotNull(employees);
-            assertEquals(14, employees.size());
+            assertEquals(15, employees.size());
         }
 
         @Test
@@ -76,7 +77,7 @@ public class EmployeeAnalyzerTest {
             int total = r.get(EmployeeAnalyzer.UNDERPAID_ISSUES).size()
                       + r.get(EmployeeAnalyzer.OVERPAID_ISSUES).size();
 
-            assertEquals(6, total);
+            assertEquals(7, total);
         }
 
         @Test
@@ -122,7 +123,6 @@ public class EmployeeAnalyzerTest {
         void shouldReturnAllHierarchyViolations() {
             Map<String, List<String>> r = report();
             List<String> hierarchy = r.get(EmployeeAnalyzer.REPORTLINE_ISSUES);
-
             assertEquals(2, hierarchy.size());
         }
 
@@ -131,17 +131,19 @@ public class EmployeeAnalyzerTest {
             Map<String, List<String>> r = report();
             List<String> hierarchy = r.get(EmployeeAnalyzer.REPORTLINE_ISSUES);
 
-            assertTrue(contains(hierarchy, "Employee 307","by 1 level"));
-            assertTrue(contains(hierarchy, "Employee 308","by 2 levels"));
+            assertFalse(contains(hierarchy, "Employee 307","by 1 level"));
+            assertTrue(contains(hierarchy, "Employee 308","by 1 level"));
             assertFalse(contains(hierarchy, "Employee 306"));
         }
 
         @Test
         void shouldDetectNoHierarchyViolationsForCeo() {
+    		List<String> reportLineViolations = new ArrayList<>();
+
     		Employee ceo = employees.get(123);
     		assertNull(ceo.getManagerId());
-    		int reportLevel= employeeAnalyzer.getReportingLines(ceo);
-    		assertEquals(0,reportLevel);
+    		employeeAnalyzer.checkReportingLines(ceo,0,reportLineViolations);
+    		assertFalse(contains(reportLineViolations, "Employee 123"));
         }
     }
 }

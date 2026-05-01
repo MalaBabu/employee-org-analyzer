@@ -1,3 +1,4 @@
+com\bigcompany\employeeanalyzer\printer\ReportPrinter.class
 com\bigcompany\employeeanalyzer\reader\CsvEmployeeReader.class
 com\bigcompany\employeeanalyzer\service\EmployeeAnalyzer.class
 com\bigcompany\employeeanalyzer\main\Application.class

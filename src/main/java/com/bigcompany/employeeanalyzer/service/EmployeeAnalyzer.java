@@ -6,85 +6,102 @@ import java.util.List;
 import java.util.Map;
 
 import com.bigcompany.employeeanalyzer.model.Employee;
+import com.bigcompany.employeeanalyzer.printer.ReportPrinter;
 
 public class EmployeeAnalyzer {
+	
 	public static final String UNDERPAID_ISSUES = "underpaidManagers";
 	public static final String OVERPAID_ISSUES = "overpaidManagers";
 	public static final String REPORTLINE_ISSUES = "reportLineViolations";
+	
+	private static final double MIN_SALARY_FACTOR = 1.2;
+	private static final double MAX_SALARY_FACTOR = 1.5;
+	private static final int MAX_REPORT_LEVEL = 5; // 4 managers + CEO
 
-	public Map<String, List<String>> analyse(Map<Integer, Employee> employees) {
+	/**
+	 * Analyzes all employees to identify:
+	 * - Managers who are underpaid or overpaid based on the average salary of their direct subordinates
+	 * - Employees whose reporting line depth exceeds the allowed threshold (more than 4 levels from CEO)
+	 *
+	 * @param employees map of employeeId to Employee objects
+	 * @return structured report containing salary and reporting line violations
+	 */
+	public Map<String, List<String>> analyze(Map<Integer, Employee> employees) {
 
-	    Map<String, List<String>> employeeReport = new HashMap<>();
-	    List<String> reportLineViolationList = new ArrayList<>();
-	    List<String> overpaidSalaryViolation = new ArrayList<>();
-	    List<String> underpaidSalaryViolation = new ArrayList<>();
+		Map<String, List<String>> employeeReport = new HashMap<>();
+		List<String> reportLineViolations = new ArrayList<>();
+		List<String> overpaidSalaryViolation = new ArrayList<>();
+		List<String> underpaidSalaryViolation = new ArrayList<>();
+		Employee ceo = null;
+		for (Employee employee : employees.values()) {
 
-	    for (Employee employee : employees.values()) {
-	    	   // ===== MANAGER SALARY CHECK =====
-	        if (employee.getSubordinates() != null && !employee.getSubordinates().isEmpty()) {
-	            double averageSubordinateSalary = employee.getSubordinates()
-	                    .stream()
-	                    .mapToDouble(Employee::getSalary)
-	                    .average()
-	                    .orElse(0.0);
-	            
-	            double min = averageSubordinateSalary * 1.2;
-	            double max = averageSubordinateSalary * 1.5;
-	            
-	            if (employee.getSalary() < min) {
-	                underpaidSalaryViolation.add(String.format(
-	                        "- Employee %d (%s) is underpaid by %.2f",
-	                        employee.getId(),
-	                        employee.getFullName(),
-	                        (min - employee.getSalary())
-	                ));
-	            }
-	            
-	            if (employee.getSalary() > max) {
-	                overpaidSalaryViolation.add(String.format(
-	                        "- Employee %d (%s) is overpaid by %.2f",
-	                        employee.getId(),
-	                        employee.getFullName(),
-	                        (employee.getSalary() - max)
-	                ));
-	            }
-	        }
+			// 1. Manager Salary Validation
 
-	        // ===== REPORTING LINE CHECK =====
-	        int reportingLines = getReportingLines(employee);
-	        if (reportingLines > 4) {
-	            int excessLevel = reportingLines - 4;
-	            reportLineViolationList.add(String.format(
-	                    "- Employee %d (%s) exceeds by %d level%s",
-	                    employee.getId(),
-	                    employee.getFullName(),
-	                    excessLevel,
-	                    excessLevel > 1 ? "s" : ""
-	            ));
-	        }
-	    }
-	    employeeReport.put(UNDERPAID_ISSUES, underpaidSalaryViolation);
-	    employeeReport.put(OVERPAID_ISSUES, overpaidSalaryViolation);
-	    employeeReport.put(REPORTLINE_ISSUES, reportLineViolationList);
-	    return employeeReport;
-	}
-	public int getReportingLines(Employee emp) {
-			int reportingLevel = 0;
-			Employee current = emp;
-			while (current.getManager() != null) {
-				reportingLevel++;
-				current = current.getManager();
+			if (employee.isManager()) {
+				evaluateSalary(employee, underpaidSalaryViolation, overpaidSalaryViolation);
 			}
-			return reportingLevel;
+
+			if (employee.isCEO()) {
+				ceo = employee;
+			}
+
+		}
+		
+		// 2. Reporting level Validation
+		checkReportingLines(ceo, 0, reportLineViolations);
+
+		// collecting the report
+		employeeReport.put(UNDERPAID_ISSUES, underpaidSalaryViolation);
+		employeeReport.put(OVERPAID_ISSUES, overpaidSalaryViolation);
+		employeeReport.put(REPORTLINE_ISSUES, reportLineViolations);
+		return employeeReport;
+	}
+	
+	
+	
+
+	
+	/**
+	 * Traverses the hierarchy from CEO and identifies employees
+	 * whose reporting depth exceeds the allowed limit.
+	 */
+	public void checkReportingLines(Employee employee, int level, List<String> reportLineViolations) {
+		if (employee != null) {
+			if (level > MAX_REPORT_LEVEL) {
+				int excessLevel = level - MAX_REPORT_LEVEL;
+				reportLineViolations.add(ReportPrinter.formatReportingLineMessage(employee, excessLevel));
+			}
+			for (Employee sub : employee.getSubordinates()) {
+				checkReportingLines(sub, level + 1, reportLineViolations);
+			}
+		}
+	}
+	
+	
+	/**
+	 * Evaluates whether a manager's salary is within the acceptable range
+	 * based on the average salary of their direct subordinates.
+	 *
+	 * A manager is:
+	 * - underpaid if their salary is less than 20% above the average
+	 * - overpaid if their salary exceeds 50% above the average
+	 */
+	private void evaluateSalary(Employee employee, List<String> underpaid, List<String> overpaid) {
+
+		double avg = employee.getSubordinates().stream().mapToDouble(Employee::getSalary).average().orElse(0.0);
+
+		double min = avg * MIN_SALARY_FACTOR;
+		double max = avg * MAX_SALARY_FACTOR;
+
+		// Minimum salary validation check
+		double salary=employee.getSalary();
+		if (employee.getSalary() < min) {
+			underpaid.add(ReportPrinter.formatUnderpaidMessage(employee, (min-salary)));
+		}
+		// Maximum salary validation check
+		if (employee.getSalary() > max) {
+			overpaid.add(ReportPrinter.formatOverpaidMessage(employee, (salary-max)));
+		}
 	}
 
-	public void printReport(Map<String, List<String>> report) {
-		System.out.println("\n************************ ORGANIZATION ANALYSIS REPORT ************************\n");
-		System.out.println("UNDERPAID MANAGERS:");
-		report.getOrDefault(UNDERPAID_ISSUES, List.of()).forEach(System.out::println);
-		System.out.println("\nOVERPAID MANAGERS:");
-		report.getOrDefault(OVERPAID_ISSUES, List.of()).forEach(System.out::println);
-		System.out.println("\nEMPLOYEES WITH TOO LONG REPORTING LINE:");
-		report.getOrDefault(REPORTLINE_ISSUES, List.of()).forEach(System.out::println);
-	}
 }
